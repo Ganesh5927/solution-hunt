@@ -53,8 +53,12 @@ export default function Home() {
           </div>
 
           <div className="nav-actions">
-            <button className="login-btn">Login</button>
-            <button className="primary-btn small-btn">Register</button>
+            <Link href="/login" className="login-btn">
+              Login
+            </Link>
+            <Link href="/register" className="primary-btn small-btn">
+              Register
+            </Link>
           </div>
 
           <button
@@ -88,9 +92,9 @@ export default function Home() {
           </p>
 
           <div className="hero-buttons">
-            <button className="primary-btn">
+            <Link href="/register" className="primary-btn">
               Register Now <span>→</span>
-            </button>
+            </Link>
             <Link href="/challenges" className="secondary-btn">
               Explore Challenges
             </Link>
@@ -251,7 +255,7 @@ export default function Home() {
           <div className="section-heading split-heading">
             <div>
               <span className="eyebrow">LIVE LEADERBOARD</span>
-              <h2>Who's leading the <span>hunt?</span></h2>
+              <h2>Who&apos;s leading the <span>hunt?</span></h2>
             </div>
 
             <button className="outline-btn">View Full Leaderboard →</button>
@@ -385,7 +389,7 @@ export default function Home() {
           <div className="section-heading split-heading">
             <div>
               <span className="eyebrow">LIVE UPDATES</span>
-              <h2>What's <span>happening?</span></h2>
+              <h2>What&apos;s <span>happening?</span></h2>
             </div>
 
             <button className="outline-btn">All Announcements →</button>
@@ -441,9 +445,9 @@ export default function Home() {
             Leave your mark.
           </p>
 
-          <button className="primary-btn cta-btn">
+          <Link href="/register" className="primary-btn cta-btn">
             Register for Solution Hunt →
-          </button>
+          </Link>
         </div>
       </section>
 

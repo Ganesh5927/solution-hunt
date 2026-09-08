@@ -1,6 +1,7 @@
 
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 
 const challengeData: Record<
@@ -212,7 +213,7 @@ export default function ProblemDetailsPage() {
           <span>404</span>
           <h1>Challenge Not Found</h1>
           <p>The problem statement you are looking for does not exist.</p>
-          <a href="/challenges">← Back to Challenges</a>
+          <Link href="/challenges">← Back to Challenges</Link>
         </div>
       </main>
     );
@@ -222,17 +223,17 @@ export default function ProblemDetailsPage() {
     <main className="problem-page">
       {/* Navbar */}
       <nav className="problem-nav">
-        <a href="/" className="problem-brand">
+        <Link href="/" className="problem-brand">
           <span className="problem-logo">S</span>
           <span>
             <strong>Solution</strong> Hunt
           </span>
-        </a>
+        </Link>
 
         <div className="problem-nav-links">
-          <a href="/">Home</a>
-          <a href="/challenges">Challenges</a>
-          <a href="/#leaderboard">Leaderboard</a>
+          <Link href="/">Home</Link>
+          <Link href="/challenges">Challenges</Link>
+          <Link href="/#leaderboard">Leaderboard</Link>
         </div>
 
         <button className="problem-register">Register</button>
@@ -242,7 +243,7 @@ export default function ProblemDetailsPage() {
       <section className="problem-container">
         {/* Breadcrumb */}
         <div className="breadcrumb">
-          <a href="/challenges">Challenges</a>
+          <Link href="/challenges">Challenges</Link>
           <span>/</span>
           <span>{challenge.id}</span>
         </div>
@@ -367,9 +368,9 @@ export default function ProblemDetailsPage() {
               </div>
             </div>
 
-            <a href="/challenges" className="back-challenges">
+            <Link href="/challenges" className="back-challenges">
               ← Explore all challenges
-            </a>
+            </Link>
           </aside>
         </div>
       </section>

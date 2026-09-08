@@ -90,25 +90,27 @@ export default function ChallengesPage() {
     <main className="challenges-page">
       {/* Navbar */}
       <nav className="challenges-nav">
-        <a href="/" className="brand">
+        <Link href="/" className="brand">
           <span className="brand-mark">S</span>
           <span>
             <strong>Solution</strong> Hunt
           </span>
-        </a>
+        </Link>
 
         <div className="nav-links">
-          <a href="/">Home</a>
-          <a href="/challenges" className="active">
+          <Link href="/">Home</Link>
+          <Link href="/challenges" className="active">
             Challenges
-          </a>
-          <a href="/#flow">Flow</a>
-          <a href="/#leaderboard">Leaderboard</a>
-          <a href="/#announcements">Announcements</a>
+          </Link>
+          <Link href="/#flow">Flow</Link>
+          <Link href="/#leaderboard">Leaderboard</Link>
+          <Link href="/#announcements">Announcements</Link>
         </div>
 
         <div className="nav-actions">
-          <button className="login-btn">Login</button>
+          <Link href="/login" className="login-btn">
+            Login
+          </Link>
           <button className="register-btn">Register</button>
         </div>
       </nav>
