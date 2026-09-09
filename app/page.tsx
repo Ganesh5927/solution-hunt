@@ -258,7 +258,7 @@ export default function Home() {
               <h2>Who&apos;s leading the <span>hunt?</span></h2>
             </div>
 
-            <button className="outline-btn">View Full Leaderboard →</button>
+            <Link href="/leaderboard" className="outline-btn">View Full Leaderboard →</Link>
           </div>
 
           <div className="leaderboard">
