@@ -1,53 +1,13 @@
-"use client";
+﻿"use client";
 
-import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import SiteHeader from "@/components/navigation/SiteHeader";
+import { getCurrentParticipant } from "@/lib/identity";
+import type { Participant, Team, TeamMember } from "@/lib/types";
 
-type Participant = {
-  firstName: string;
-  lastName: string;
-  participantId: string;
-  college: string;
-};
-
-type TeamMember = {
-  participantId: string;
-  name: string;
-  college: string;
-};
-
-type Team = {
-  teamId: string;
-  teamName: string;
-  teamCode: string;
-  leaderId: string;
-  leaderName: string;
-  members: TeamMember[];
-};
-
-function parseTeam(savedTeam: string | null) {
-  if (!savedTeam) return null;
-
-  try {
-    const parsedTeam = JSON.parse(savedTeam) as Team;
-    if (!parsedTeam || typeof parsedTeam.teamCode !== "string" || !Array.isArray(parsedTeam.members)) return null;
-
-    return {
-      ...parsedTeam,
-      teamCode: parsedTeam.teamCode.toUpperCase(),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function createTeamCode() {
+function makeCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
-}
-
-function createTeamId() {
-  return `SH-TEAM-${String(Date.now()).slice(-4)}`;
 }
 
 export default function TeamPage() {
@@ -58,325 +18,169 @@ export default function TeamPage() {
   const [teamCode, setTeamCode] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error">("success");
-  const [copyFeedback, setCopyFeedback] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("solutionHuntLoggedIn") === "true";
-    const savedUser = localStorage.getItem("solutionHuntUser");
-
-    if (!isLoggedIn || !savedUser) {
-      router.replace("/login");
+    const current = getCurrentParticipant();
+    if (!current) {
+      router.replace("/participant-portal");
       return;
     }
 
-    const hydrationTimer = window.setTimeout(() => {
-      try {
-        setParticipant(JSON.parse(savedUser) as Participant);
-        const savedTeam = localStorage.getItem("solutionHuntTeam");
-        const parsedTeam = parseTeam(savedTeam);
-        setTeam(parsedTeam);
-        if (savedTeam && !parsedTeam) {
-          showMessage("Team data is corrupted. Please create a new team.", "error");
-        }
-        setCheckingSession(false);
-      } catch {
-        router.replace("/login");
-      }
-    }, 0);
-
-    return () => window.clearTimeout(hydrationTimer);
+    const storedTeams = JSON.parse(localStorage.getItem("solutionHuntTeams") || "[]") as Team[];
+    const found = storedTeams.find((item) => item.members.some((member) => member.participantId === current.registrationId)) ?? null;
+    setParticipant(current);
+    setTeam(found);
+    setChecking(false);
   }, [router]);
 
-  function showMessage(nextMessage: string, type: "success" | "error") {
-    setMessage(nextMessage);
+  function notify(text: string, type: "success" | "error") {
+    setMessage(text);
     setMessageType(type);
   }
 
-  function memberForParticipant() {
-    if (!participant) return null;
-
-    return {
-      participantId: participant.participantId,
-      name: `${participant.firstName} ${participant.lastName}`,
-      college: participant.college,
-    };
-  }
-
-  function handleCreateTeam(event: FormEvent<HTMLFormElement>) {
+  function createTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const trimmedName = teamName.trim();
-    const member = memberForParticipant();
-
-    if (!trimmedName) {
-      showMessage("Please enter a team name.", "error");
-      return;
-    }
-
-    if (!member || team) return;
+    if (!participant) return;
+    if (!teamName.trim()) return notify("Enter a team name to continue.", "error");
 
     const nextTeam: Team = {
-      teamId: createTeamId(),
-      teamName: trimmedName,
-      teamCode: createTeamCode(),
-      leaderId: member.participantId,
-      leaderName: member.name,
-      members: [member],
+      teamId: `TEAM-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+      teamName: teamName.trim(),
+      teamCode: makeCode(),
+      leaderId: participant.registrationId,
+      leaderName: participant.fullName,
+      members: [{
+        participantId: participant.registrationId,
+        hackathonId: participant.registrationId,
+        name: participant.fullName,
+        college: participant.college,
+        email: participant.email,
+        phone: participant.phone,
+        course: participant.department,
+        year: participant.yearOfStudy,
+        role: participant.participationType,
+      }],
+      registrationStatus: "VERIFIED",
+      registeredAt: new Date().toISOString(),
     };
 
-    localStorage.setItem("solutionHuntTeam", JSON.stringify(nextTeam));
+    const teams = JSON.parse(localStorage.getItem("solutionHuntTeams") || "[]") as Team[];
+    localStorage.setItem("solutionHuntTeams", JSON.stringify([...teams, nextTeam]));
     setTeam(nextTeam);
     setTeamName("");
-    showMessage("Team created successfully. Share your invite code with teammates.", "success");
+    notify("Team created successfully. Share your team code with your teammates.", "success");
   }
 
-  function handleJoinTeam(event: FormEvent<HTMLFormElement>) {
+  function joinTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage("");
-    setCopyFeedback(false);
+    if (!participant) return;
+    const entered = teamCode.trim().toUpperCase();
+    if (!entered) return notify("Enter a valid team code.", "error");
 
-    const enteredCode = teamCode.trim().toUpperCase();
+    const teams = JSON.parse(localStorage.getItem("solutionHuntTeams") || "[]") as Team[];
+    const selected = teams.find((item) => item.teamCode === entered);
+    if (!selected) return notify("That team code could not be found.", "error");
+    if (selected.members.some((member) => member.participantId === participant.registrationId)) return notify("You are already part of this team.", "success");
 
-    if (!enteredCode) {
-      showMessage("Please enter a team code.", "error");
-      return;
-    }
-
-    const storedUser = localStorage.getItem("solutionHuntUser");
-    if (!storedUser) {
-      showMessage("Please login again.", "error");
-      router.replace("/login");
-      return;
-    }
-
-    let user: Participant;
-    try {
-      user = JSON.parse(storedUser) as Participant;
-    } catch {
-      showMessage("Your participant data is corrupted. Please login again.", "error");
-      router.replace("/login");
-      return;
-    }
-
-    const storedTeamValue = localStorage.getItem("solutionHuntTeam");
-    if (!storedTeamValue) {
-      showMessage("No team found with this code.", "error");
-      return;
-    }
-
-    let storedTeam: Team;
-    try {
-      storedTeam = JSON.parse(storedTeamValue) as Team;
-    } catch {
-      showMessage("Team data is corrupted. Please create a new team.", "error");
-      return;
-    }
-
-    if (!storedTeam || typeof storedTeam.teamCode !== "string" || !Array.isArray(storedTeam.members)) {
-      showMessage("Team data is corrupted. Please create a new team.", "error");
-      return;
-    }
-
-    const normalizedTeam = {
-      ...storedTeam,
-      teamCode: storedTeam.teamCode.toUpperCase(),
+    const nextMember: TeamMember = {
+      participantId: participant.registrationId,
+      hackathonId: participant.registrationId,
+      name: participant.fullName,
+      college: participant.college,
+      email: participant.email,
+      phone: participant.phone,
+      course: participant.department,
+      year: participant.yearOfStudy,
+      role: participant.participationType,
     };
 
-    if (enteredCode !== normalizedTeam.teamCode) {
-      showMessage("Invalid team code.", "error");
-      return;
-    }
-
-    if (normalizedTeam.members.some((member) => member.participantId === user.participantId)) {
-      setTeam(normalizedTeam);
-      showMessage("You are already a member of this team.", "error");
-      return;
-    }
-
-    if (normalizedTeam.members.length >= 4) {
-      showMessage("Team is full.", "error");
-      return;
-    }
-
-    const newMember: TeamMember = {
-      participantId: user.participantId,
-      name: `${user.firstName} ${user.lastName}`,
-      college: user.college,
-    };
-
-    const updatedTeam = {
-      ...normalizedTeam,
-      members: [...normalizedTeam.members, newMember],
-    };
-    localStorage.setItem("solutionHuntTeam", JSON.stringify(updatedTeam));
-    setParticipant(user);
-    setTeam(updatedTeam);
+    const nextTeam: Team = { ...selected, members: [...selected.members, nextMember] };
+    const nextTeams = teams.map((item) => item.teamCode === entered ? nextTeam : item);
+    localStorage.setItem("solutionHuntTeams", JSON.stringify(nextTeams));
+    setTeam(nextTeam);
     setTeamCode("");
-    showMessage("You joined the team successfully!", "success");
+    notify("You joined the team successfully.", "success");
   }
 
-  function handleLeaveTeam() {
-    if (!team || !participant) return;
-
-    if (!team.members.some((member) => member.participantId === participant.participantId)) return;
-
-    if (team.leaderId === participant.participantId && team.members.length > 1) {
-      showMessage("Team leaders cannot leave while other members are in the team.", "error");
-      return;
-    }
-
-    if (!window.confirm("Leave this team?")) return;
-
-    if (team.leaderId === participant.participantId) {
-      localStorage.removeItem("solutionHuntTeam");
-      setTeam(null);
-    } else {
-      const nextTeam = {
-        ...team,
-        members: team.members.filter((member) => member.participantId !== participant.participantId),
-      };
-      localStorage.setItem("solutionHuntTeam", JSON.stringify(nextTeam));
-      setTeam(nextTeam);
-    }
-    showMessage("You left the team.", "success");
+  if (checking || !participant) {
+    return <main className="team-shell"><p className="mono">OPENING TEAM WORKSPACE...</p></main>;
   }
-
-  function handleLogout() {
-    localStorage.removeItem("solutionHuntLoggedIn");
-    router.push("/login");
-  }
-
-  async function handleCopyCode() {
-    if (!team) return;
-
-    try {
-      await navigator.clipboard.writeText(team.teamCode);
-      setCopyFeedback(true);
-      window.setTimeout(() => setCopyFeedback(false), 2200);
-    } catch {
-      showMessage("Copy unavailable. Select the code manually.", "error");
-    }
-  }
-
-  if (checkingSession || !participant) {
-    return <main className="team-loading">Opening team workspace...</main>;
-  }
-
-  const isTeamMember = Boolean(team?.members.some((member) => member.participantId === participant.participantId));
 
   return (
     <main className="team-page">
-      <div className="team-glow team-glow-one" />
-      <div className="team-glow team-glow-two" />
-
-      <nav className="team-nav">
-        <Link href="/" className="participant-logo">
-          <span className="participant-logo-mark">S</span>
-          <span><strong>SOLUTION</strong><small>HUNT</small></span>
-        </Link>
-        <span className="team-nav-title">TEAM MANAGEMENT</span>
-        <div className="team-nav-links">
-          <Link href="/dashboard">Dashboard</Link>
-          <Link href="/challenges">Challenges</Link>
-          <Link href="/passport">Passport</Link>
-          <button type="button" className="participant-logout" onClick={handleLogout}>Logout</button>
-        </div>
-      </nav>
-
+      <SiteHeader authenticated />
       <div className="team-shell">
         <header className="team-heading">
           <div>
-            <p className="team-eyebrow">SOLUTION HUNT 2026 / COLLABORATION</p>
-            <h1>My <span>Team.</span></h1>
-            <p>Create or join a team and build your solution together.</p>
+            <p className="team-eyebrow">SOLUTION HUNT 2026 / MY TEAM</p>
+            <h1>My <span>team.</span></h1>
+            <p>Build or join a team together and prepare your challenge strategy.</p>
           </div>
-          {team && isTeamMember && <div className="team-active-pill"><i /> TEAM ACTIVE</div>}
+          {team && <span className="eyebrow">TEAM ACTIVE</span>}
         </header>
 
         {message && <p className={`team-message is-${messageType}`} role={messageType === "error" ? "alert" : "status"}>{message}</p>}
 
         {!team ? (
-          <section className="team-setup-grid" aria-label="Team setup">
-            {!team && <article className="team-setup-card team-create-card">
-              <span className="team-card-icon">+</span>
-              <p className="team-card-kicker">START THE BUILD</p>
-              <h2>Create a Team</h2>
-              <p>Start your own hackathon team and invite other participants.</p>
-              <form onSubmit={handleCreateTeam}>
-                <label htmlFor="team-name">Team Name</label>
-                <input id="team-name" value={teamName} onChange={(event) => setTeamName(event.target.value)} placeholder="e.g. Quantum Builders" maxLength={40} />
-                <button type="submit" className="team-primary-button">Create Team <span>→</span></button>
+          <section className="team-setup-grid">
+            <article className="team-card">
+              <p className="eyebrow">START THE BUILD</p>
+              <h2>Create a team</h2>
+              <p>Start the build and invite other participants with a short team code.</p>
+              <form onSubmit={createTeam}>
+                <label htmlFor="team-name">Team name</label>
+                <input id="team-name" value={teamName} onChange={(event) => setTeamName(event.target.value)} placeholder="e.g. Signal Works" maxLength={40} />
+                <button className="team-primary-button" type="submit">Create team ↗</button>
               </form>
-            </article>}
+            </article>
 
-            <article className="team-setup-card team-join-card">
-              <span className="team-card-icon">↗</span>
-              <p className="team-card-kicker">FIND YOUR CREW</p>
-              <h2>Join a Team</h2>
-              <p>Enter the team code shared by your team leader.</p>
-              <form onSubmit={handleJoinTeam}>
-                <label htmlFor="team-code">Team Code</label>
+            <article className="team-card">
+              <p className="eyebrow">FIND YOUR CREW</p>
+              <h2>Join a team</h2>
+              <p>Enter a team code shared by a participant on this device.</p>
+              <form onSubmit={joinTeam}>
+                <label htmlFor="team-code">Team code</label>
                 <input id="team-code" value={teamCode} onChange={(event) => setTeamCode(event.target.value)} placeholder="6-character code" maxLength={6} />
-                <button type="submit" className="team-secondary-button">Join Team <span>↗</span></button>
+                <button className="team-secondary-button" type="submit">Join team ↗</button>
               </form>
-              {process.env.NODE_ENV !== "production" && <small className="team-demo-helper">Demo: Create a team first to generate a team code.</small>}
             </article>
           </section>
         ) : (
-          <section className="team-dashboard" aria-label="Team dashboard">
+          <section className="team-dashboard">
             <header className="team-dashboard-header">
-              <div><p className="team-card-kicker">TEAM IDENTITY</p><h2>{team.teamName}</h2><p>{team.teamId}</p></div>
-              <div className="team-active-label"><i /> ACTIVE</div>
+              <div>
+                <p className="eyebrow">TEAM IDENTITY</p>
+                <h2>{team.teamName}</h2>
+                <p>{team.teamId}</p>
+              </div>
+              <span className="mono">{team.members.length} / 4 MEMBERS</span>
             </header>
 
             <div className="team-overview-grid">
               <div><span>TEAM LEADER</span><strong>{team.leaderName}</strong></div>
               <div><span>TEAM CODE</span><strong>{team.teamCode}</strong></div>
-              <div><span>MEMBERS</span><strong>{team.members.length} / 4</strong></div>
+              <div><span>PROBLEM</span><strong>NOT SELECTED</strong></div>
             </div>
 
-            <aside className="team-invite-card team-invite-feature">
-              <div>
-                <p className="team-card-kicker">INVITE YOUR TEAMMATES</p>
-                <h3>Share your team code.</h3>
-                <p>Share your team code with participants so they can join your team.</p>
+            <div className="team-members-panel">
+              <div className="team-panel-heading">
+                <h3>Team Members</h3>
+                <span>{team.members.length} members</span>
               </div>
-              <div className="team-invite-code-row"><strong>{team.teamCode}</strong><button type="button" className="team-copy-button" onClick={handleCopyCode}>▣ Copy Team Code</button></div>
-              {copyFeedback && <span className="team-copy-feedback" role="status">Team code copied!</span>}
-              <div className="team-how-to-join"><strong>How to join</strong><ol><li>Open Team Management</li><li>Select Join Team</li><li>Enter this team code</li><li>Click Join Team</li></ol></div>
-            </aside>
-
-            <section className="team-members-panel team-members-section">
-              <div className="team-panel-heading"><div><p className="team-card-kicker">TEAM MEMBERS</p><h3>Your build crew</h3></div><span>{team.members.length} / 4 ACTIVE</span></div>
               <div className="team-member-list">
                 {team.members.map((member) => (
                   <div className="team-member-row" key={member.participantId}>
-                    <div className="team-member-avatar">{member.name.split(" ").map((part) => part.charAt(0)).join("").slice(0, 2)}</div>
-                    <div className="team-member-info"><strong>{member.name}</strong><span>{member.college}</span></div>
-                    <div className="team-member-meta"><span>{member.participantId}</span><b>{member.participantId === team.leaderId ? "TEAM LEADER" : "MEMBER"}</b></div>
+                    <div className="team-member-avatar">{member.name.split(" ").map((part) => part[0]).join("").slice(0, 2)}</div>
+                    <div className="team-member-info">
+                      <strong>{member.name}</strong>
+                      <span>{member.college}</span>
+                    </div>
+                    <span className="mono">{member.participantId === team.leaderId ? "LEADER" : "MEMBER"}</span>
                   </div>
                 ))}
               </div>
-            </section>
-
-            <div className="team-stats-grid">
-              <div><span>TEAM MEMBERS</span><strong>{team.members.length}</strong></div>
-              <div><span>MAXIMUM MEMBERS</span><strong>4</strong></div>
-              <div><span>CHALLENGE</span><strong>NOT SELECTED</strong></div>
-              <div><span>SUBMISSION</span><strong>NOT STARTED</strong></div>
             </div>
-
-            <div className="team-dashboard-actions">
-              <Link href="/challenges" className="team-primary-button">Explore Challenges <span>↗</span></Link>
-              <Link href="/passport" className="team-secondary-button">Hackathon Passport <span>↗</span></Link>
-              <Link href="/dashboard" className="team-secondary-button">Back to Dashboard</Link>
-            </div>
-            {!isTeamMember && <section className={`team-join-existing ${team.members.length >= 4 ? "is-full" : ""}`}>
-              <div><p className="team-card-kicker">JOIN A TEAM</p><h3>Enter a team code</h3><p>Use a code shared by a team leader on this device.</p></div>
-              <form onSubmit={handleJoinTeam}><label htmlFor="existing-team-code">Team Code</label><div className="team-join-inline"><input id="existing-team-code" value={teamCode} onChange={(event) => setTeamCode(event.target.value)} placeholder="6-character code" maxLength={6} disabled={team.members.length >= 4} /><button type="submit" className="team-secondary-button" disabled={team.members.length >= 4}>Join Team <span>↗</span></button></div></form>
-              {team.members.length >= 4 && <strong className="team-full-label">Team is full</strong>}
-            </section>}
-            {isTeamMember && <button type="button" className="team-leave-button" onClick={handleLeaveTeam}>Leave Team</button>}
           </section>
         )}
       </div>
