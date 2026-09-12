@@ -1,4 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import ParticipantIdCard from "@/components/admin/ParticipantIdCard";
+import { listParticipants } from "@/lib/identity";
+import type { Participant } from "@/lib/types";
 
 const stats = [
   { label: "Participants", value: "200+" },
@@ -15,6 +21,14 @@ const queue = [
 ];
 
 export default function AdminPage() {
+  const [participants, setParticipants] = useState<Participant[]>([]);
+
+  useEffect(() => {
+    const loadParticipants = window.setTimeout(() => setParticipants(listParticipants()), 0);
+    return () => window.clearTimeout(loadParticipants);
+  }, []);
+  const liveStats = stats.map((item) => item.label === "Participants" ? { ...item, value: String(participants.length) } : item);
+
   return (
     <main className="platform-page admin-page">
       <nav className="platform-nav">
@@ -56,7 +70,7 @@ export default function AdminPage() {
         </header>
 
         <div className="stats-card-grid">
-          {stats.map((item) => (
+          {liveStats.map((item) => (
             <article className="metric-card" key={item.label}>
               <span>{item.label}</span>
               <strong>{item.value}</strong>
@@ -106,6 +120,12 @@ export default function AdminPage() {
             <Link href="/verify/scan?role=Admin" className="primary-button">OPEN QR SCANNER <span>↗</span></Link>
           </section>
         </div>
+
+        <section className="admin-id-section">
+          <div className="panel-head"><div><span className="eyebrow">ID CARD WORKSHOP</span><h2>Generate participant IDs</h2></div><span className="mono">{participants.length} RECORDS</span></div>
+          <p className="admin-id-intro">Every registration already has a unique Hackathon ID and QR payload. Print the designed front and back card from this admin-only workspace.</p>
+          {participants.length ? <div className="admin-id-list">{participants.map((participant) => <ParticipantIdCard key={participant.participantId || participant.registrationId} participant={participant} />)}</div> : <div className="admin-id-empty">No registrations yet. New participant IDs will appear here immediately after registration.</div>}
+        </section>
       </section>
     </main>
   );

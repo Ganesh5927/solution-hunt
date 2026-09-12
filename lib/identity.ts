@@ -157,7 +157,7 @@ export function registerParticipant(input: {
     participantId: registrationId,
     hackathonId: registrationId,
     qrToken: createToken(),
-    qrCodeData: `NEXORA 2026 | Participant: ${registrationId}`,
+    qrCodeData: `NEXORA 2026 | Team Name: ${input.teamName?.trim() || "INDIVIDUAL"} | Participant Name: ${fullName} | Participant ID: ${registrationId}`,
     verificationStatus: "VERIFIED",
     registeredAt,
   };

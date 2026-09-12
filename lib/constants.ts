@@ -15,6 +15,7 @@ export const publicNav = [
   { label: "Teams", href: "/#teams" },
   { label: "Sponsors", href: "/#sponsors" },
   { label: "FAQ", href: "/#faq" },
+  { label: "Admin", href: "/admin" },
 ];
 
 export const passportStages: PassportItem[] = [

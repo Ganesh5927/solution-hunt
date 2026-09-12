@@ -1,39 +1,20 @@
 ﻿"use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import QRCode from "qrcode";
 import SiteHeader from "@/components/navigation/SiteHeader";
 import { getCurrentParticipant } from "@/lib/identity";
 import type { Participant } from "@/lib/types";
 
 export default function PassportPage() {
   const router = useRouter();
-  const [participant, setParticipant] = useState<Participant | null>(null);
-  const [qrData, setQrData] = useState("");
+  const [participant] = useState<Participant | null>(() => getCurrentParticipant());
 
   useEffect(() => {
-    const saved = getCurrentParticipant();
-    if (!saved) {
+    if (!participant) {
       router.replace("/participant-portal");
-      return;
     }
-
-    setParticipant(saved);
-  }, [router]);
-
-  useEffect(() => {
-    if (!participant?.registrationId) return;
-    const participantId = participant.participantId || participant.registrationId;
-    const teamId = participant.teamRegistrationId || participant.teamId || participant.hackathonId || "UNASSIGNED";
-    const teamName = participant.teamName || "UNASSIGNED TEAM";
-    QRCode.toDataURL(`NEXORA 2026 | Team: ${teamName} | Team ID: ${teamId} | Participant: ${participant.fullName} | Participant ID: ${participantId}`, {
-      margin: 1,
-      width: 200,
-      color: { dark: "#071426", light: "#ffffff" },
-    }).then(setQrData).catch(() => setQrData(""));
-  }, [participant]);
+  }, [participant, router]);
 
   if (!participant) {
     return <main className="passport-shell"><p className="mono">VERIFYING PASSPORT...</p></main>;
@@ -65,7 +46,7 @@ export default function PassportPage() {
               <div className="passport-avatar">{participant.fullName.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>
               <p className="passport-field-label">PARTICIPANT NAME</p>
               <h3>{participant.fullName}</h3>
-              <p className="passport-id">REGISTRATION ID / {participant.registrationId}</p>
+              <p className="passport-id">HACKATHON ID CARD / ISSUED BY EVENT ADMIN</p>
             </div>
             <div className="passport-details">
               <div><span>COLLEGE</span><strong>{participant.college}</strong></div>
@@ -75,10 +56,7 @@ export default function PassportPage() {
               <div><span>CITY</span><strong>{participant.city || "—"}</strong></div>
               <div><span>STATUS</span><strong>CONFIRMED</strong></div>
             </div>
-            <div className="passport-qr-panel">
-              {qrData ? <Image className="passport-qr-image" src={qrData} width={150} height={150} unoptimized alt="Participant QR code" /> : <div className="passport-qr"><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /></div>}
-              <span>SCAN TO VERIFY<br />PARTICIPANT</span>
-            </div>
+            <div className="passport-qr-panel"><span>ID card and QR code are issued by the event admin.</span></div>
           </div>
           <div className="passport-card-footer">
             <span>NEXORA 2026</span>
