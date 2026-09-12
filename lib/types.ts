@@ -25,6 +25,7 @@ export type Participant = {
   verificationStatus?: "VERIFIED" | "PENDING";
   registeredAt: string;
   teamId?: string;
+  teamRegistrationId?: string;
 };
 
 export type TeamMember = {
@@ -37,10 +38,12 @@ export type TeamMember = {
   year?: string;
   role?: string;
   hackathonId?: string;
+  department?: string;
 };
 
 export type Team = {
   teamId: string;
+  teamRegistrationId?: string;
   teamName: string;
   teamCode: string;
   leaderId: string;
@@ -48,6 +51,9 @@ export type Team = {
   members: TeamMember[];
   registrationStatus?: "VERIFIED" | "PENDING";
   registeredAt?: string;
+  college?: string;
+  department?: string;
+  city?: string;
 };
 
 export type PassportRecord = {
@@ -80,6 +86,29 @@ export type PassportItem = {
   label: string;
   shortLabel: string;
   complete: boolean;
+};
+
+export type CheckpointName = "Registration" | "Idea Validation" | "Development" | "Final Submission" | "Final Evaluation";
+
+export type CheckpointVerification = {
+  id: string;
+  participantId: string;
+  teamId: string;
+  teamName: string;
+  checkpoint: CheckpointName;
+  verifiedAt: string;
+  verifiedBy: "Admin" | "Judge";
+  status: "COMPLETED";
+};
+
+export type ScanRecord = {
+  id: string;
+  participantId: string;
+  teamId: string;
+  checkpoint?: CheckpointName;
+  scannedAt: string;
+  scannedBy: "Admin" | "Judge";
+  status: "VERIFIED";
 };
 
 export type LeaderboardEntry = {

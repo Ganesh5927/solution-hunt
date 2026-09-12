@@ -1,4 +1,5 @@
 import type { Participant, Team, TeamMember } from "./types";
+import { supabase } from "./supabase";
 
 const PARTICIPANTS_KEY = "solutionHuntParticipants";
 const CURRENT_PARTICIPANT_KEY = "solutionHuntCurrentParticipant";
@@ -43,6 +44,23 @@ function generateRegistrationId() {
     return generateRegistrationId();
   }
   return `SH26-${candidate}`;
+}
+
+function generateTeamRegistrationId() {
+  const existing = listTeams();
+  let candidate = "";
+  do {
+    candidate = `SH26-TEAM-${Math.floor(1000 + Math.random() * 9000)}`;
+  } while (existing.some((team) => (team.teamRegistrationId || team.teamId) === candidate));
+  return candidate;
+}
+
+function generateParticipantId(existing: Participant[], index: number) {
+  const candidate = `SH26-P-${String(existing.length + index + 1).padStart(3, "0")}`;
+  if (existing.some((participant) => participant.participantId === candidate)) {
+    return `SH26-P-${createToken().slice(0, 8).toUpperCase()}`;
+  }
+  return candidate;
 }
 
 export function listParticipants() {
@@ -139,7 +157,7 @@ export function registerParticipant(input: {
     participantId: registrationId,
     hackathonId: registrationId,
     qrToken: createToken(),
-    qrCodeData: `Solution Hunt 2026\nRegistration ID: ${registrationId}`,
+    qrCodeData: `NEXORA 2026 | Participant: ${registrationId}`,
     verificationStatus: "VERIFIED",
     registeredAt,
   };
@@ -149,6 +167,157 @@ export function registerParticipant(input: {
   setCurrentParticipant(participant);
 
   return participant;
+}
+
+export type TeamRegistrationInput = {
+  teamName: string;
+  city: string;
+  leader: Omit<TeamMember, "participantId" | "hackathonId" | "role">;
+  members: Array<Omit<TeamMember, "participantId" | "hackathonId" | "role">>;
+};
+
+export async function registerTeam(input: TeamRegistrationInput) {
+  const memberInputs = input.members;
+  const teamName = input.teamName.trim();
+  const city = input.city.trim();
+
+  if (!teamName) throw new Error("Team Name is required.");
+
+  const requiredFields: Array<keyof Omit<TeamMember, "participantId" | "hackathonId" | "role">> = ["name", "email", "phone", "college", "department", "year"];
+  const hasAnyValue = (member: Omit<TeamMember, "participantId" | "hackathonId" | "role">) => requiredFields.some((field) => String(member[field] || "").trim());
+  const hasAllValues = (member: Omit<TeamMember, "participantId" | "hackathonId" | "role">) => requiredFields.every((field) => String(member[field] || "").trim());
+  const optionalIncompleteIndex = memberInputs.findIndex((member, index) => index >= 3 && hasAnyValue(member) && !hasAllValues(member));
+  if (optionalIncompleteIndex !== -1) {
+    throw new Error(`Member ${optionalIncompleteIndex + 2} is incomplete. Complete all fields or leave Member ${optionalIncompleteIndex + 2} empty.`);
+  }
+  const allMembers = [input.leader, ...memberInputs.filter((member, index) => index < 3 || hasAnyValue(member))];
+  if (allMembers.length < 4) throw new Error("Your team must have at least 4 members.");
+  if (allMembers.length > 6) throw new Error("Your team cannot have more than 6 members.");
+
+  const incompleteIndex = allMembers.findIndex((member) => requiredFields.some((field) => !String(member[field] || "").trim()));
+  if (incompleteIndex !== -1) {
+    const memberNumber = incompleteIndex + 1;
+    throw new Error(`Please complete Member ${memberNumber} details.`);
+  }
+
+  if (!city) throw new Error("City is required.");
+
+  const emails = allMembers.map((member) => normalizeEmail(member.email || ""));
+  const phones = allMembers.map((member) => normalizePhone(member.phone || ""));
+  if (emails.some((email) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+    throw new Error("Every required email must have a valid email format.");
+  }
+  if (phones.some((phone) => phone.length < 7 || phone.length > 15)) {
+    throw new Error("Every required phone number must be valid.");
+  }
+  if (new Set(emails).size !== emails.length) throw new Error("Duplicate email addresses are not allowed inside the same team.");
+  if (new Set(phones).size !== phones.length) throw new Error("Duplicate phone numbers are not allowed inside the same team.");
+
+  const existingParticipants = listParticipants();
+  const hasExistingParticipant = existingParticipants.some((participant) => {
+    const email = normalizeEmail(participant.email);
+    const phone = normalizePhone(participant.phone);
+    return emails.includes(email) || phones.includes(phone);
+  });
+  if (hasExistingParticipant) throw new Error("This participant is already registered with Solution Hunt.");
+
+  const teamRegistrationId = generateTeamRegistrationId();
+  const registeredAt = new Date().toISOString();
+  const participants = allMembers.map((member, index) => {
+    const fullName = member.name.trim();
+    const [firstName, ...rest] = fullName.split(" ");
+    const participantId = generateParticipantId(existingParticipants, index);
+    const participant: Participant = {
+      fullName,
+      firstName,
+      lastName: rest.join(" ") || "Participant",
+      email: normalizeEmail(member.email || ""),
+      phone: normalizePhone(member.phone || ""),
+      college: member.college.trim(),
+      department: member.department?.trim() || "",
+      yearOfStudy: member.year?.trim() || "",
+      city,
+      participationType: "Team",
+      teamName,
+      registrationId: participantId,
+      participantId,
+      hackathonId: teamRegistrationId,
+      teamId: teamRegistrationId,
+      teamRegistrationId,
+      qrToken: createToken(),
+      qrCodeData: `NEXORA 2026 | Team: ${teamName} | Team ID: ${teamRegistrationId} | Participant: ${fullName} | Participant ID: ${participantId}`,
+      verificationStatus: "VERIFIED",
+      registeredAt,
+    };
+    return participant;
+  });
+
+  const teamMembers: TeamMember[] = participants.map((participant, index) => ({
+    participantId: participant.participantId || participant.registrationId,
+    hackathonId: teamRegistrationId,
+    name: participant.fullName,
+    college: participant.college,
+    email: participant.email,
+    phone: participant.phone,
+    course: participant.department,
+    department: participant.department,
+    year: participant.yearOfStudy,
+    role: index === 0 ? "Team Leader" : "Member",
+  }));
+  const team: Team = {
+    teamId: teamRegistrationId,
+    teamRegistrationId,
+    teamName,
+    teamCode: teamRegistrationId,
+    leaderId: teamMembers[0].participantId,
+    leaderName: teamMembers[0].name,
+    members: teamMembers,
+    registrationStatus: "VERIFIED",
+    registeredAt,
+    college: teamMembers[0].college,
+    department: teamMembers[0].department,
+    city,
+  };
+
+  if (supabase) {
+    const { error: teamError } = await supabase.from("teams").insert({
+      team_id: teamRegistrationId,
+      team_name: teamName,
+      leader_participant_id: teamMembers[0].participantId,
+      college: team.college,
+      department: team.department,
+      city,
+      status: "CONFIRMED",
+      created_at: registeredAt,
+    });
+    if (teamError) {
+      if (teamError.code === "23505") throw new Error("This team or participant is already registered.");
+      throw new Error(`Team registration could not be saved: ${teamError.message}`);
+    }
+
+    const { error: participantError } = await supabase.from("participants").insert(participants.map((participant, index) => ({
+      participant_id: participant.participantId,
+      team_id: teamRegistrationId,
+      full_name: participant.fullName,
+      email: participant.email,
+      phone: participant.phone,
+      college: participant.college,
+      department: participant.department,
+      year: participant.yearOfStudy,
+      role: index === 0 ? "Team Leader" : "Member",
+      qr_token: participant.qrToken,
+      registration_status: "CONFIRMED",
+      created_at: registeredAt,
+    })));
+    if (participantError) {
+      throw new Error(participantError.code === "23505" ? "This participant is already registered with NEXORA 2026." : `Participant records could not be saved: ${participantError.message}`);
+    }
+  }
+
+  writeJson(PARTICIPANTS_KEY, [...existingParticipants, ...participants]);
+  writeJson(TEAMS_KEY, [...listTeams(), team]);
+  setCurrentParticipant(participants[0]);
+  return { team, participants, leader: participants[0] };
 }
 
 export function verifyParticipant(email: string, registrationId: string) {
@@ -194,7 +363,10 @@ export function createTeamForParticipant(participant: Participant, teamName: str
 }
 
 export function findTeamForParticipant(participant: Participant) {
-  const code = participant.teamName?.trim();
-  if (!code) return null;
-  return listTeams().find((team) => team.members.some((member) => member.participantId === participant.registrationId)) ?? null;
+  const participantId = participant.participantId || participant.registrationId;
+  return listTeams().find((team) => {
+    return team.members.some((member) => member.participantId === participantId)
+      || team.teamId === participant.teamId
+      || team.teamRegistrationId === participant.teamRegistrationId;
+  }) ?? null;
 }

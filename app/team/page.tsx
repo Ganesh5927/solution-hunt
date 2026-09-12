@@ -41,66 +41,12 @@ export default function TeamPage() {
 
   function createTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!participant) return;
-    if (!teamName.trim()) return notify("Enter a team name to continue.", "error");
-
-    const nextTeam: Team = {
-      teamId: `TEAM-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-      teamName: teamName.trim(),
-      teamCode: makeCode(),
-      leaderId: participant.registrationId,
-      leaderName: participant.fullName,
-      members: [{
-        participantId: participant.registrationId,
-        hackathonId: participant.registrationId,
-        name: participant.fullName,
-        college: participant.college,
-        email: participant.email,
-        phone: participant.phone,
-        course: participant.department,
-        year: participant.yearOfStudy,
-        role: participant.participationType,
-      }],
-      registrationStatus: "VERIFIED",
-      registeredAt: new Date().toISOString(),
-    };
-
-    const teams = JSON.parse(localStorage.getItem("solutionHuntTeams") || "[]") as Team[];
-    localStorage.setItem("solutionHuntTeams", JSON.stringify([...teams, nextTeam]));
-    setTeam(nextTeam);
-    setTeamName("");
-    notify("Team created successfully. Share your team code with your teammates.", "success");
+    notify("Teams must be registered with 4–6 members. Complete the team registration form.", "error");
   }
 
   function joinTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!participant) return;
-    const entered = teamCode.trim().toUpperCase();
-    if (!entered) return notify("Enter a valid team code.", "error");
-
-    const teams = JSON.parse(localStorage.getItem("solutionHuntTeams") || "[]") as Team[];
-    const selected = teams.find((item) => item.teamCode === entered);
-    if (!selected) return notify("That team code could not be found.", "error");
-    if (selected.members.some((member) => member.participantId === participant.registrationId)) return notify("You are already part of this team.", "success");
-
-    const nextMember: TeamMember = {
-      participantId: participant.registrationId,
-      hackathonId: participant.registrationId,
-      name: participant.fullName,
-      college: participant.college,
-      email: participant.email,
-      phone: participant.phone,
-      course: participant.department,
-      year: participant.yearOfStudy,
-      role: participant.participationType,
-    };
-
-    const nextTeam: Team = { ...selected, members: [...selected.members, nextMember] };
-    const nextTeams = teams.map((item) => item.teamCode === entered ? nextTeam : item);
-    localStorage.setItem("solutionHuntTeams", JSON.stringify(nextTeams));
-    setTeam(nextTeam);
-    setTeamCode("");
-    notify("You joined the team successfully.", "success");
+    notify("Team members are registered together. Return to the team registration form.", "error");
   }
 
   if (checking || !participant) {
@@ -113,7 +59,7 @@ export default function TeamPage() {
       <div className="team-shell">
         <header className="team-heading">
           <div>
-            <p className="team-eyebrow">SOLUTION HUNT 2026 / MY TEAM</p>
+            <p className="team-eyebrow">NEXORA 2026 / MY TEAM</p>
             <h1>My <span>team.</span></h1>
             <p>Build or join a team together and prepare your challenge strategy.</p>
           </div>
@@ -127,7 +73,7 @@ export default function TeamPage() {
             <article className="team-card">
               <p className="eyebrow">START THE BUILD</p>
               <h2>Create a team</h2>
-              <p>Start the build and invite other participants with a short team code.</p>
+              <p>Register your complete team together. Teams must have 4–6 members.</p>
               <form onSubmit={createTeam}>
                 <label htmlFor="team-name">Team name</label>
                 <input id="team-name" value={teamName} onChange={(event) => setTeamName(event.target.value)} placeholder="e.g. Signal Works" maxLength={40} />
@@ -138,7 +84,7 @@ export default function TeamPage() {
             <article className="team-card">
               <p className="eyebrow">FIND YOUR CREW</p>
               <h2>Join a team</h2>
-              <p>Enter a team code shared by a participant on this device.</p>
+              <p>Existing team members receive their own participant pass after registration.</p>
               <form onSubmit={joinTeam}>
                 <label htmlFor="team-code">Team code</label>
                 <input id="team-code" value={teamCode} onChange={(event) => setTeamCode(event.target.value)} placeholder="6-character code" maxLength={6} />
@@ -154,7 +100,7 @@ export default function TeamPage() {
                 <h2>{team.teamName}</h2>
                 <p>{team.teamId}</p>
               </div>
-              <span className="mono">{team.members.length} / 4 MEMBERS</span>
+                <span className="mono" style={{ color: "#A8FF3E" }}>{team.members.length} / 6 MEMBERS</span>
             </header>
 
             <div className="team-overview-grid">

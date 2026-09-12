@@ -25,7 +25,10 @@ export default function PassportPage() {
 
   useEffect(() => {
     if (!participant?.registrationId) return;
-    QRCode.toDataURL(`Solution Hunt 2026\nRegistration ID: ${participant.registrationId}`, {
+    const participantId = participant.participantId || participant.registrationId;
+    const teamId = participant.teamRegistrationId || participant.teamId || participant.hackathonId || "UNASSIGNED";
+    const teamName = participant.teamName || "UNASSIGNED TEAM";
+    QRCode.toDataURL(`NEXORA 2026 | Team: ${teamName} | Team ID: ${teamId} | Participant: ${participant.fullName} | Participant ID: ${participantId}`, {
       margin: 1,
       width: 200,
       color: { dark: "#071426", light: "#ffffff" },
@@ -42,7 +45,7 @@ export default function PassportPage() {
       <div className="passport-shell">
         <header className="passport-heading">
           <div>
-            <p className="passport-eyebrow">SOLUTION HUNT 2026 / VERIFIED IDENTITY</p>
+            <p className="passport-eyebrow">NEXORA 2026 / VERIFIED IDENTITY</p>
             <h1>My hunt <span>passport.</span></h1>
             <p>Carry your participant identity through every stage of the hunt.</p>
           </div>
@@ -78,7 +81,7 @@ export default function PassportPage() {
             </div>
           </div>
           <div className="passport-card-footer">
-            <span>SOLUTION HUNT 2026</span>
+            <span>NEXORA 2026</span>
             <span>AM REDDY GROUP OF INSTITUTIONS</span>
           </div>
         </section>

@@ -32,6 +32,7 @@ export default function JudgePage() {
           <Link href="/leaderboard">Leaderboard</Link>
           <Link href="/updates">Updates</Link>
           <Link href="/judge" className="active">Judge</Link>
+          <Link href="/verify/scan?role=Judge">QR Verify</Link>
         </div>
 
         <div className="nav-actions">
@@ -98,6 +99,11 @@ export default function JudgePage() {
             </div>
           </aside>
         </div>
+        <section className="panel-card verification-entry-card">
+          <div className="panel-head"><div><span className="eyebrow">HACKATHON PASSPORT</span><h2>Verify a participant</h2></div></div>
+          <p>Use the participant QR to open their team, progress, submission, and scan history.</p>
+          <Link href="/verify/scan?role=Judge" className="primary-button">OPEN QR SCANNER <span>↗</span></Link>
+        </section>
       </section>
     </main>
   );

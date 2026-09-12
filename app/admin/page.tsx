@@ -32,6 +32,7 @@ export default function AdminPage() {
           <Link href="/updates">Updates</Link>
           <Link href="/judge">Judge</Link>
           <Link href="/admin" className="active">Admin</Link>
+          <Link href="/verify/scan?role=Admin">QR Verify</Link>
         </div>
 
         <div className="nav-actions">
@@ -97,6 +98,12 @@ export default function AdminPage() {
               <div className="small-status"><strong>Judging</strong><span>In progress</span></div>
               <div className="small-status"><strong>Announcements</strong><span>Published</span></div>
             </div>
+          </section>
+
+          <section className="panel-card verification-entry-card">
+            <div className="panel-head"><div><span className="eyebrow">PASSPORT CONTROL</span><h2>Verify participants</h2></div></div>
+            <p>Scan a participant QR and update checkpoint progress from the verified record.</p>
+            <Link href="/verify/scan?role=Admin" className="primary-button">OPEN QR SCANNER <span>↗</span></Link>
           </section>
         </div>
       </section>
