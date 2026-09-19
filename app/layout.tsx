@@ -17,12 +17,22 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+
+  title: "NEXORA 2026 — Solve Real Problems. Build Real Solutions.",
+  description:
+    "NEXORA — A problem-driven 24-hour hackathon at A.M. Reddy Memorial College of Engineering & Technology.",
+=======
   title: "Solution Hunt — Solve Real Problems. Build Real Solutions.",
   description:
     "Solution Hunt is a problem-driven hackathon where students turn real-world challenges into working solutions.",
+main
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable}`}>
       <body className="min-h-full flex flex-col">{children}</body>
