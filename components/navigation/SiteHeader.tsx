@@ -21,8 +21,8 @@ export default function SiteHeader({ authenticated = false }: { authenticated?: 
     <header className={`site-header ${authenticated ? "site-header-auth" : ""}`}>
       <div className="site-header-inner">
         <Link href="/" className="wordmark" onClick={() => setOpen(false)}>
-          <span className="wordmark-mark">S</span>
-          <span><strong>SOLUTION</strong><small>HUNT</small></span>
+          <span className="wordmark-mark">N</span>
+          <span><strong>NEXORA</strong><small>2026</small></span>
         </Link>
         <button className="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded={open} onClick={() => setOpen(!open)}>
           <span /><span />
